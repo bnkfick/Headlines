@@ -52,13 +52,11 @@ app.get("/scrape", function (req, res) {
             var excerpt = $(element).siblings('.excerpt').text().trim();
             console.log(excerpt);
             
-            //var articleCreated = moment().format("YYYY MM DD hh:mm:ss");
 
             var result = {
                  title: title,
                  link: link,
                  excerpt: excerpt,
-            //     articleCreated: articleCreated,
                  isSaved: false
             }
 
@@ -87,7 +85,7 @@ app.get("/scrape", function (req, res) {
 app.get("/articles", function (req, res) {
     db.Article
         .find({})
-        .sort({ articleCreated: -1 })
+        .sort({ articleCreated: 1 })
         .then(function (dbArticle) {
             res.json(dbArticle);
         })
