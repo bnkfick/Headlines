@@ -1,72 +1,173 @@
-// Parses our HTML and helps us find elements
+// Dependencies
+var express = require("express");
+var logger = require("morgan");
+var mongoose = require("mongoose");
+
+
+// Scraping tools
 var cheerio = require("cheerio");
-// Makes HTTP request for HTML page
 var axios = require("axios");
 
+// Require all models
+var db = require("./models");
 
-// Headline - the title of the article
-// Summary - a short summary of the article
-// URL - the url to the original article
-// Feel free to add more content to your database (photos, bylines, and so on).
+// Initialize Express
+var PORT = process.env.PORT || 3000;
+
+var app = express();
+
+// Configure middleware
+// Use morgan logger for logging requests
+app.use(logger("dev"));
+
+// Parse request body as JSON
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+// Make public a static folder
+app.use(express.static("public"));
+
+
+
+// Routes
+app.get("/", function (req, res) {
+    res.send(index.html);
+});
+
+// A GET route for scraping the site
 app.get("/scrape", function (req, res) {
-    // Making a request via axios for reddit's "webdev" board. The page's HTML is passed as the callback's third argument
-    axios.get("https://old.reddit.com/r/webdev/").then(function (response) {
+    console.log("inside scrape");
+
+    axios.get("https://arstechnica.com/").then(function (response) {
 
         // Load the HTML into cheerio and save it to a variable
         // '$' becomes a shorthand for cheerio's selector commands, much like jQuery's '$'
         var $ = cheerio.load(response.data);
 
-        // An empty array to save the data that we'll scrape
-        var results = [];
+        $("li header h2").each(function (i, element) {
+            //console.log(element);
+            var link = $(element).children('a').attr('href');
+            console.log(link);
+            var title = $(element).children('a').text();
+            console.log(title);
+            var excerpt = $(element).siblings('.excerpt').text().trim();
+            console.log(excerpt);
+            
+            //var articleCreated = moment().format("YYYY MM DD hh:mm:ss");
 
-        // With cheerio, find each p-tag with the "title" class
-        // (i: iterator. element: the current element)
-        $("p.title").each(function (i, element) {
+            var result = {
+                 title: title,
+                 link: link,
+                 excerpt: excerpt,
+            //     articleCreated: articleCreated,
+                 isSaved: false
+            }
 
-            // Save the text of the element in a "title" variable
-            var headline = $(element).text();
-            var summary;
-            // In the currently selected element, look at its child elements (i.e., its a-tags),
-            // then save the values for any "href" attributes that the child elements may have
-            var link = $(element).children().attr("href");
-            var photo;
+            // console.log(result);
 
-            // Save result in an object 
-            result = {
-                headline: headline,
-                summary: summary,
-                link: link,
-                photo: photo
-            };
+            db.Article.findOne({ title: title }).then(function (data) {
 
-            console.log(result);
-            //check database to see if it exists already
-            //if it doesn't exist insert article
+                console.log(data);
 
+                if (data === null) {
+
+                    db.Article.create(result).then(function (dbArticle) {
+                        //res.json(dbArticle);
+                    });
+                }
+            }).catch(function (err) {
+                console.log(err);
+                //res.json(err);
+            });
         });
+        res.end();
     });
-    // Log the results once you've looped through each of the elements found with cheerio
-    console.log(results);
 });
 
 // Route for getting all Articles from the db
 app.get("/articles", function (req, res) {
-    console.log("get /articles");
+    db.Article
+        .find({})
+        .sort({ articleCreated: -1 })
+        .then(function (dbArticle) {
+            res.json(dbArticle);
+        })
+        .catch(function (err) {
+            res.json(err);
+        });
 });
 
-// Route for saving/updating an Article's associated comments
+// Route for grabbing a specific Article by id, populate it with it's note
+app.get("/articles/:id", function (req, res) {
+    db.Article
+        .findOne({ _id: req.params.id })
+        .populate("note")
+        .then(function (dbArticle) {
+            res.json(dbArticle);
+        })
+        .catch(function (err) {
+            res.json(err);
+        });
+});
+
+// Route for saving/updating an Article's associated Note
 app.post("/articles/:id", function (req, res) {
-    console.log("post /articles/:id");
+    db.Note
+        .create(req.body)
+        .then(function (dbNote) {
+            return db.Article.findOneAndUpdate({ _id: req.params.id }, { note: dbNote._id }, { new: true });
+        })
+        .then(function (dbArticle) {
+            res.json(dbArticle);
+        })
+        .catch(function (err) {
+            res.json(err);
+        });
+});
+
+// Route for saving/updating article to be saved
+app.put("/saved/:id", function (req, res) {
+    db.Article
+        .findByIdAndUpdate({ _id: req.params.id }, { $set: { isSaved: true } })
+        .then(function (dbArticle) {
+            res.json(dbArticle);
+        })
+        .catch(function (err) {
+            res.json(err);
+        });
+});
+
+// Route for getting saved article
+app.get("/saved", function (req, res) {
+    db.Article
+        .find({ isSaved: true })
+        .then(function (dbArticle) {
+            res.json(dbArticle);
+        })
+        .catch(function (err) {
+            res.json(err);
+        });
 });
 
 // Route for deleting/updating saved article
 app.put("/delete/:id", function (req, res) {
-    console.log("put /delete/:id");
+    db.Article
+        .findByIdAndUpdate({ _id: req.params.id }, { $set: { isSaved: false } })
+        .then(function (dbArticle) {
+            res.json(dbArticle);
+        })
+        .catch(function (err) {
+            res.json(err);
+        });
 });
 
+var MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost/mongoHeadlines";
+
+// Connect to the Mongo DB
+mongoose.connect(MONGODB_URI, { useNewUrlParser: true });
 
 
-// Set the app to listen on port 3000
-app.listen(3000, function () {
-    console.log("App running on port 3000!");
+
+// Start the server
+app.listen(PORT, function () {
+    console.log("App running on port " + PORT + "!");
 });
