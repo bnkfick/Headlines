@@ -137,7 +137,7 @@ app.put("/saved/:id", function (req, res) {
 });
 
 app.get("/saved-articles", function (req, res) {
-    console.log('saved articles');
+
     res.render("saved");
 });
 
@@ -157,7 +157,7 @@ app.get("/saved", function (req, res) {
 
 // Route for deleteing all Articles from the db
 app.delete("/clear", function (req, res) {
-    console.log("called clear");
+
     db.Article
         .deleteMany({})
         .then(function (dbArticles) {
