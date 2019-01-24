@@ -22,7 +22,7 @@ const app = express();
 app.use(logger("dev"));
 
 
-app.engine("handlebars", expressHandlebar({ defaultLayout: "main" }));
+app.engine("handlebars", exphbs({ defaultLayout: "main" }));
 app.set("view engine", "handlebars");
 
 // Parse request body as JSON
@@ -69,10 +69,7 @@ app.get("/scrape", function (req, res) {
 
             db.Article.findOne({ title: title }).then(function (data) {
 
-                console.log(data);
-
                 if (data === null) {
-
                     db.Article.create(result).then(function (dbArticle) {
                         //res.json(dbArticle);
                     });
@@ -90,7 +87,7 @@ app.get("/scrape", function (req, res) {
 app.get("/articles", function (req, res) {
     db.Article
         .find({})
-        .sort({ articleCreated: 1 })
+        .sort({ articleCreated: -1 })
         .then(function (dbArticle) {
             res.json(dbArticle);
         })
@@ -151,6 +148,20 @@ app.get("/saved", function (req, res) {
         });
 });
 
+
+// Route for deleteing all Articles from the db
+app.get("/clear", function (req, res) {
+    db.Article
+        .deleteMany({})
+        .then(function (dbArticles) {
+            return db.Note.deleteMany({});
+        })
+        .catch(function (err) {
+            res.json(err);
+        });
+});
+
+
 // Route for deleting/updating saved article
 app.put("/delete/:id", function (req, res) {
     db.Article
@@ -167,8 +178,6 @@ var MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost/mongoHeadlines
 
 // Connect to the Mongo DB
 mongoose.connect(MONGODB_URI, { useNewUrlParser: true });
-
-
 
 // Start the server
 app.listen(PORT, function () {
