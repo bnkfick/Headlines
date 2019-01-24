@@ -1,24 +1,29 @@
 // Dependencies
-var express = require("express");
-var logger = require("morgan");
-var mongoose = require("mongoose");
+const express = require("express");
+const logger = require("morgan");
+const mongoose = require("mongoose");
+const exphbs = require("express-handlebars");
 
 
 // Scraping tools
-var cheerio = require("cheerio");
-var axios = require("axios");
+const cheerio = require("cheerio");
+const axios = require("axios");
 
 // Require all models
-var db = require("./models");
+const db = require("./models");
 
 // Initialize Express
-var PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
 
-var app = express();
+const app = express();
 
 // Configure middleware
 // Use morgan logger for logging requests
 app.use(logger("dev"));
+
+
+app.engine("handlebars", expressHandlebar({ defaultLayout: "main" }));
+app.set("view engine", "handlebars");
 
 // Parse request body as JSON
 app.use(express.urlencoded({ extended: true }));
