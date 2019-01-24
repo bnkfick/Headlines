@@ -21,21 +21,21 @@ const app = express();
 // Use morgan logger for logging requests
 app.use(logger("dev"));
 
+// Serve static content for the app from the "public" directory in the application directory.
+app.use(express.static("public"));
+
+// Parse application body as JSON
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
 
 app.engine("handlebars", exphbs({ defaultLayout: "main" }));
 app.set("view engine", "handlebars");
 
-// Parse request body as JSON
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-// Make public a static folder
-app.use(express.static("public"));
-
-
 
 // Routes
 app.get("/", function (req, res) {
-    res.send(index.html);
+    res.render("articles");
 });
 
 // A GET route for scraping the site
@@ -136,11 +136,17 @@ app.put("/saved/:id", function (req, res) {
         });
 });
 
+app.get("/saved-articles", function (req, res) {
+    console.log('saved articles');
+    res.render("saved");
+});
+
 // Route for getting saved article
 app.get("/saved", function (req, res) {
     db.Article
         .find({ isSaved: true })
         .then(function (dbArticle) {
+            console.log(dbArticle);
             res.json(dbArticle);
         })
         .catch(function (err) {
@@ -150,11 +156,15 @@ app.get("/saved", function (req, res) {
 
 
 // Route for deleteing all Articles from the db
-app.get("/clear", function (req, res) {
+app.delete("/clear", function (req, res) {
+    console.log("called clear");
     db.Article
         .deleteMany({})
         .then(function (dbArticles) {
-            return db.Note.deleteMany({});
+            db.Note.deleteMany({})
+            .then(function(dbNotes) {
+                res.end();
+            })
         })
         .catch(function (err) {
             res.json(err);

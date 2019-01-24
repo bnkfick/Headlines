@@ -1,23 +1,26 @@
+console.log("hello");
+
 $.getJSON("/saved", function(data) {
+
     for (var i = 0; i < data.length; i++) {
-  
+
     $("#articles").append(
         "<div class='col-sm-4' style='margin-bottom:60px;'><div class='card'><div class='card-body'><a class='title-link' href='" + data[i].link +"'><h5>" + data[i].title + "</h5></a><hr><p class='card-text'>" + data[i].excerpt + "</p><button data-id='" + data[i]._id + "' class='btn-note btn btn-outline-primary btn-sm' data-toggle='modal' data-target='#myModal' style='margin-right:10px;'>Note</button><button id='btn-delete' data-id='" + data[i]._id + "' class='btn btn-outline-danger btn-sm'>Delete</button></div></div></div>"
       );
-  }
-  
-    console.log(data);
+    }
+
   });
   
   // When you click the Note button
   $(document).on("click", ".btn-note", function() {
-    
+    console.log("clicking note");
     $(".modal-title").empty();
     $(".input").empty();
   
     // Save the id from .btn-note
     var thisId = $(this).attr("data-id");
-  
+    console.log(thisId);
+    
     $.ajax({
       method: "GET",
       url: "/articles/" + thisId
@@ -72,7 +75,6 @@ $.getJSON("/saved", function(data) {
   $(document).on("click", "#btn-delete", function() {
     
     var thisId = $(this).attr("data-id");
-    console.log(thisId);
   
     $.ajax({
       method: "PUT",

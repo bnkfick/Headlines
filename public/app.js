@@ -1,4 +1,5 @@
 $.getJSON("/articles", function(data) {
+
     for (var i = 0; i < data.length; i++) {
   
        $("#articles").append(
@@ -23,7 +24,20 @@ $.getJSON("/articles", function(data) {
       });
   });
   
-  
+    // When you click the Fetch button
+    $(document).on("click", ".btn-delete", function() {
+
+      if(confirm('Do you reall want to delete all the Articles?')) {
+
+        $.ajax({
+          method: "DELETE",
+          url: "/clear"
+        })
+          .done(function(data) {
+            location.reload();
+          });
+      }
+    });
   
   // When you click the Note button
   $(document).on("click", ".btn-note", function() {
@@ -33,7 +47,6 @@ $.getJSON("/articles", function(data) {
   
     // Save the id from .btn-note
     var thisId = $(this).attr("data-id");
-    console.log(thisId);
   
     $.ajax({
       method: "GET",
